@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>quiz.sql // Administración de Bases de Datos</title>
+<style>
+  @import url('https://cdnjs.cloudflare.com/ajax/libs/JetBrains-Mono/2.304/jetbrains-mono.min.css');
+
+  :root{
+    --bg0:#11111b;
+    --bg1:#1e1e2e;
+    --bg2:#181825;
+    --surface:#313244;
+    --overlay:#45475a;
+    --text:#cdd6f4;
+    --sub:#a6adc8;
+    --green:#a6e3a1;
+    --red:#f38ba8;
+    --yellow:#f9e2af;
+    --blue:#89b4fa;
+    --mauve:#cba6f7;
+    --peach:#fab387;
+    --teal:#94e2d5;
+    --pink:#f5c2e7;
+    --rosewater:#f5e0dc;
+    --mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(203,166,247,0.08), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(137,180,250,0.07), transparent 45%),
+      var(--bg0);
+    color:var(--text);
+    font-family: var(--mono);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding: 28px 16px 60px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:760px;
+  }
+
+  /* ---------- terminal chrome ---------- */
+  .termbar{
+    background:var(--bg2);
+    border:1px solid var(--surface);
+    border-bottom:none;
+    border-radius:10px 10px 0 0;
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dot.r{background:var(--red);}
+  .dot.y{background:var(--yellow);}
+  .dot.g{background:var(--green);}
+  .termtitle{
+    margin-left:8px;
+    font-size:12.5px;
+    color:var(--sub);
+    letter-spacing:0.02em;
+  }
+
+  .panel{
+    background:var(--bg1);
+    border:1px solid var(--surface);
+    border-radius:0 0 10px 10px;
+    padding:26px 26px 30px;
+  }
+
+  /* ---------- header / intro ---------- */
+  .prompt-line{
+    color:var(--green);
+    font-size:13px;
+    margin:0 0 4px;
+  }
+  .prompt-line .path{color:var(--blue);}
+  .prompt-line .cmd{color:var(--text);}
+
+  h1{
+    font-size: 21px;
+    color:var(--rosewater);
+    margin: 2px 0 6px;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--sub);
+    font-size:13px;
+    margin:0 0 18px;
+    line-height:1.5;
+  }
+  .subtitle b{color:var(--peach); font-weight:600;}
+
+  .meta-row{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--sub);
+    border-top:1px dashed var(--surface);
+    border-bottom:1px dashed var(--surface);
+    padding:10px 0;
+    margin-bottom:22px;
+  }
+  .meta-row span b{color:var(--teal);}
+
+  /* ---------- progress ---------- */
+  #progress-wrap{
+    margin-bottom: 18px;
+  }
+  .progress-track{
+    height:8px;
+    background:var(--bg2);
+    border:1px solid var(--surface);
+    border-radius:5px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, var(--mauve), var(--blue));
+    transition: width .35s ease;
+  }
+  .progress-text{
+    display:flex;
+    justify-content:space-between;
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:6px;
+  }
+  .progress-text #score-live{color:var(--green);}
+
+  /* ---------- categories nav (start screen) ---------- */
+  .cat-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px;
+    margin: 18px 0 24px;
+  }
+  .cat-chip{
+    background:var(--bg2);
+    border:1px solid var(--surface);
+    border-radius:6px;
+    padding:9px 10px;
+    font-size:11.5px;
+    color:var(--sub);
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .cat-chip .bullet{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--mauve);
+    flex:none;
+  }
+
+  .btn{
+    font-family:var(--mono);
+    background: var(--green);
+    color: #11111b;
+    border:none;
+    border-radius:6px;
+    padding:13px 22px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    letter-spacing:0.01em;
+    transition: transform .12s ease, filter .15s ease;
+    width:100%;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform: scale(0.985);}
+  .btn.secondary{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--overlay);
+    font-weight:600;
+  }
+  .btn.secondary:hover{border-color:var(--mauve); color:var(--mauve);}
+  .btn:disabled{opacity:0.4; cursor:not-allowed; filter:none;}
+
+  /* ---------- question card ---------- */
+  #quiz-screen{display:none;}
+  #result-screen{display:none;}
+
+  .q-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--bg0);
+    background:var(--teal);
+    padding:4px 9px;
+    border-radius:4px;
+    margin-bottom:14px;
+    font-weight:700;
+  }
+
+  .q-text{
+    font-size:16px;
+    line-height:1.55;
+    color:var(--text);
+    margin: 0 0 20px;
+  }
+  .q-text code, .q-code{
+    background:var(--bg2);
+    border:1px solid var(--surface);
+    color:var(--peach);
+    padding:1px 7px;
+    border-radius:4px;
+    font-size:0.92em;
+  }
+
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom: 22px;
+  }
+
+  .option{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    background:var(--bg2);
+    border:1px solid var(--surface);
+    border-radius:8px;
+    padding:13px 14px;
+    cursor:pointer;
+    text-align:left;
+    font-family:var(--mono);
+    font-size:13.5px;
+    color:var(--text);
+    transition: border-color .15s ease, background .15s ease;
+    line-height:1.45;
+  }
+  .option:hover:not(.locked){
+    border-color:var(--mauve);
+    background:#22223a;
+  }
+  .option .letter{
+    flex:none;
+    width:22px;
+    height:22px;
+    border-radius:5px;
+    background:var(--surface);
+    color:var(--sub);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11.5px;
+    font-weight:700;
+  }
+  .option.correct{
+    border-color:var(--green);
+    background:rgba(166,227,161,0.08);
+  }
+  .option.correct .letter{background:var(--green); color:#11111b;}
+  .option.incorrect{
+    border-color:var(--red);
+    background:rgba(243,139,168,0.08);
+  }
+  .option.incorrect .letter{background:var(--red); color:#11111b;}
+  .option.locked{cursor:default;}
+  .option.dim{opacity:0.55;}
+
+  .feedback{
+    display:none;
+    border-left:3px solid var(--mauve);
+    background:var(--bg2);
+    padding:12px 14px;
+    border-radius:0 6px 6px 0;
+    font-size:13px;
+    color:var(--sub);
+    line-height:1.55;
+    margin-bottom:20px;
+  }
+  .feedback.show{display:block;}
+  .feedback b{color:var(--rosewater);}
+  .feedback.ok{border-left-color:var(--green);}
+  .feedback.bad{border-left-color:var(--red);}
+
+  .nav-row{
+    display:flex;
+    gap:10px;
+  }
+  .nav-row .btn{flex:1;}
+
+  /* ---------- result screen ---------- */
+  .score-display{
+    text-align:center;
+    padding: 18px 0 8px;
+  }
+  .score-big{
+    font-size:54px;
+    font-weight:700;
+    line-height:1;
+    margin-bottom:6px;
+  }
+  .score-big .of{font-size:24px; color:var(--sub); font-weight:500;}
+  .score-label{
+    font-size:13px;
+    color:var(--sub);
+    margin-bottom: 22px;
+  }
+  .score-msg{
+    background:var(--bg2);
+    border:1px solid var(--surface);
+    border-radius:8px;
+    padding:14px 16px;
+    font-size:13.5px;
+    color:var(--text);
+    line-height:1.6;
+    margin-bottom:22px;
+  }
+
+  .breakdown{
+    margin-bottom:24px;
+  }
+  .breakdown-title{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--sub);
+    margin-bottom:10px;
+  }
+  .bd-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:12.5px;
+    padding:6px 0;
+    border-bottom:1px solid var(--bg2);
+  }
+  .bd-row .bd-cat{flex:1; color:var(--sub);}
+  .bd-row .bd-bar-track{
+    flex:1.4;
+    height:6px;
+    background:var(--bg2);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .bd-row .bd-bar-fill{
+    height:100%;
+    background:var(--blue);
+  }
+  .bd-row .bd-num{width:34px; text-align:right; color:var(--text);}
+
+  .result-actions{
+    display:flex;
+    gap:10px;
+  }
+  .result-actions .btn{flex:1;}
+
+  footer{
+    text-align:center;
+    color:var(--surface);
+    font-size:11px;
+    margin-top: 18px;
+    letter-spacing:0.02em;
+  }
+
+  @media (max-width: 480px){
+    .panel{padding:20px 16px 24px;}
+    h1{font-size:18px;}
+    .score-big{font-size:44px;}
+    .cat-grid{grid-template-columns:1fr;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="termbar">
+    <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    <span class="termtitle">adminserver@ds-server: ~/cuestionario</span>
+  </div>
+
+  <div class="panel">
+
+    <!-- ============ START SCREEN ============ -->
+    <div id="start-screen">
+      <p class="prompt-line"><span class="path">~/ds-server$</span> <span class="cmd">./cuestionario --modulo administracion-bd</span></p>
+      <h1>Cuestionario · Administración de Bases de Datos</h1>
+      <p class="subtitle">Repaso de <b>MariaDB</b>, <b>phpMyAdmin</b> y buenas prácticas de administración: usuarios, privilegios, importación/exportación, backups y el stack LAMP. 20 preguntas, una sola sesión.</p>
+
+      <div class="meta-row">
+        <span>Preguntas: <b>20</b></span>
+        <span>Categorías: <b>10</b></span>
+        <span>Tiempo estimado: <b>~12 min</b></span>
+      </div>
+
+      <div class="cat-grid">
+        <div class="cat-chip"><span class="bullet"></span>Usuarios y privilegios</div>
+        <div class="cat-chip"><span class="bullet"></span>Import / Export</div>
+        <div class="cat-chip"><span class="bullet"></span>Bases de datos</div>
+        <div class="cat-chip"><span class="bullet"></span>Backups</div>
+        <div class="cat-chip"><span class="bullet"></span>Modelo relacional</div>
+        <div class="cat-chip"><span class="bullet"></span>Linux y terminal</div>
+        <div class="cat-chip"><span class="bullet"></span>Buenas prácticas</div>
+        <div class="cat-chip"><span class="bullet"></span>Stack LAMP</div>
+      </div>
+
+      <button class="btn" onclick="startQuiz()">Iniciar cuestionario →</button>
+    </div>
+
+    <!-- ============ QUIZ SCREEN ============ -->
+    <div id="quiz-screen">
+      <div id="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-text">
+          <span id="progress-label">Pregunta 1 / 20</span>
+          <span>Aciertos: <span id="score-live">0</span></span>
+        </div>
+      </div>
+
+      <span class="q-tag" id="q-cat">Categoría</span>
+      <p class="q-text" id="q-text">Pregunta</p>
+      <div class="options" id="q-options"></div>
+      <div class="feedback" id="q-feedback"></div>
+
+      <div class="nav-row">
+        <button class="btn" id="next-btn" disabled onclick="nextQuestion()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- ============ RESULT SCREEN ============ -->
+    <div id="result-screen">
+      <p class="prompt-line"><span class="path">~/ds-server$</span> <span class="cmd">cat resultado.log</span></p>
+      <div class="score-display">
+        <div class="score-big" id="final-score">0<span class="of">/20</span></div>
+        <div class="score-label" id="final-pct">0% de aciertos</div>
+      </div>
+      <div class="score-msg" id="score-msg"></div>
+
+      <div class="breakdown" id="breakdown"></div>
+
+      <div class="result-actions">
+        <button class="btn secondary" onclick="reviewMissed()">Revisar falladas</button>
+        <button class="btn" onclick="restartQuiz()">Reintentar</button>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>// administración de bases de datos — DS3</footer>
+</div>
+
+<script>
+/* ============================================================
+   BANCO DE PREGUNTAS
+   ============================================================ */
+const QUESTIONS = [
+  // ---- Creación de nuevo usuario ----
+  {
+    cat: "Usuarios",
+    text: "¿Qué comando SQL crea un nuevo usuario en MariaDB que solo puede conectarse desde el propio servidor (localhost)?",
+    options: [
+      "<span class='q-code'>CREATE USER 'alumno01'@'localhost' IDENTIFIED BY 'clave123';</span>",
+      "<span class='q-code'>NEW USER alumno01 PASSWORD 'clave123';</span>",
+      "<span class='q-code'>INSERT INTO users VALUES ('alumno01','clave123');</span>",
+      "<span class='q-code'>ADD USER 'alumno01' TO DATABASE;</span>"
+    ],
+    correct: 0,
+    explain: "<b>CREATE USER 'usuario'@'host' IDENTIFIED BY 'contraseña';</b> es la sintaxis estándar de MariaDB/MySQL. El host (<span class='q-code'>localhost</span>, <span class='q-code'>%</span> o una IP) define desde dónde puede conectarse ese usuario."
+  },
+  {
+    cat: "Usuarios",
+    text: "Si quieres que un usuario pueda conectarse desde cualquier máquina de la red (no solo localhost), ¿qué host usas al crearlo?",
+    options: [
+      "<span class='q-code'>'usuario'@'any'</span>",
+      "<span class='q-code'>'usuario'@'%'</span>",
+      "<span class='q-code'>'usuario'@'*'</span>",
+      "<span class='q-code'>'usuario'@'remote'</span>"
+    ],
+    correct: 1,
+    explain: "El símbolo <b>%</b> es el wildcard de MariaDB/MySQL para 'cualquier host'. Es útil para usuarios que se conectan remotamente, pero debe usarse con cuidado: combinado con privilegios amplios es un riesgo de seguridad si el servidor está expuesto."
+  },
+
+  // ---- Importación y exportación ----
+  {
+    cat: "Import / Export",
+    text: "Desde la terminal, ¿qué comando exporta (hace dump) de una base de datos completa a un archivo .sql?",
+    options: [
+      "<span class='q-code'>mysql -u root -p basedatos > backup.sql</span>",
+      "<span class='q-code'>mysqldump -u root -p basedatos > backup.sql</span>",
+      "<span class='q-code'>mysqlexport basedatos backup.sql</span>",
+      "<span class='q-code'>mariadb-save basedatos backup.sql</span>"
+    ],
+    correct: 1,
+    explain: "<b>mysqldump</b> (equivalente a <span class='q-code'>mariadb-dump</span> en versiones nuevas) genera el conjunto de instrucciones SQL necesarias para reconstruir la base de datos: estructura de tablas y datos."
+  },
+  {
+    cat: "Import / Export",
+    text: "Para importar un archivo backup.sql dentro de una base de datos ya creada, ¿cuál es el comando correcto desde terminal?",
+    options: [
+      "<span class='q-code'>mysqldump -u root -p basedatos < backup.sql</span>",
+      "<span class='q-code'>mysql -u root -p basedatos < backup.sql</span>",
+      "<span class='q-code'>import basedatos backup.sql</span>",
+      "<span class='q-code'>mysql -u root -p basedatos > backup.sql</span>"
+    ],
+    correct: 1,
+    explain: "Se usa el cliente <b>mysql</b> redirigiendo la entrada con <span class='q-code'>&lt;</span> (no mysqldump, que es para exportar). El signo <span class='q-code'>&gt;</span> exporta hacia un archivo; <span class='q-code'>&lt;</span> alimenta el contenido del archivo como entrada al comando."
+  },
+  {
+    cat: "Import / Export",
+    text: "En phpMyAdmin, ¿en qué formato es más común exportar una base de datos para portabilidad y respaldo legible?",
+    options: [
+      "PDF",
+      "SQL",
+      "PNG",
+      "DOCX"
+    ],
+    correct: 1,
+    explain: "El formato <b>SQL</b> es el estándar porque contiene las instrucciones exactas (CREATE TABLE, INSERT...) para reconstruir la base de datos en cualquier servidor MySQL/MariaDB. phpMyAdmin también permite CSV o JSON, pero esos no preservan estructura completa de forma nativa."
+  },
+
+  // ---- Asignación de privilegios ----
+  {
+    cat: "Privilegios",
+    text: "¿Qué comando le otorga a un usuario permisos para SELECT, INSERT, UPDATE y DELETE (rol de 'editor') sobre una base de datos específica?",
+    options: [
+      "<span class='q-code'>GRANT SELECT, INSERT, UPDATE, DELETE ON basedatos.* TO 'usuario'@'localhost';</span>",
+      "<span class='q-code'>SET ROLE editor TO 'usuario';</span>",
+      "<span class='q-code'>ALTER USER 'usuario' EDITOR;</span>",
+      "<span class='q-code'>ADD PRIVILEGE editor ON basedatos;</span>"
+    ],
+    correct: 0,
+    explain: "<b>GRANT</b> es la instrucción para conceder privilegios. Listar privilegios concretos (no ALL PRIVILEGES) es la base del principio de mínimo privilegio: el usuario editor puede modificar datos pero no necesariamente alterar la estructura."
+  },
+  {
+    cat: "Privilegios",
+    text: "Un rol de 'solo lector' debería recibir únicamente el privilegio:",
+    options: [
+      "<span class='q-code'>ALL PRIVILEGES</span>",
+      "<span class='q-code'>DROP</span>",
+      "<span class='q-code'>SELECT</span>",
+      "<span class='q-code'>GRANT OPTION</span>"
+    ],
+    correct: 2,
+    explain: "<b>SELECT</b> permite únicamente consultar datos, sin modificarlos ni borrarlos. Es el privilegio típico para reportes, dashboards de solo lectura o usuarios que solo necesitan visualizar información, como una barra de registros."
+  },
+  {
+    cat: "Privilegios",
+    text: "Después de modificar privilegios directamente en las tablas del sistema (sin usar GRANT/REVOKE), ¿qué comando es obligatorio ejecutar para que MariaDB aplique los cambios inmediatamente?",
+    options: [
+      "<span class='q-code'>RESTART SERVER;</span>",
+      "<span class='q-code'>FLUSH PRIVILEGES;</span>",
+      "<span class='q-code'>RELOAD USERS;</span>",
+      "<span class='q-code'>COMMIT PRIVILEGES;</span>"
+    ],
+    correct: 1,
+    explain: "<b>FLUSH PRIVILEGES;</b> recarga las tablas de permisos en memoria. Si usas GRANT o REVOKE normalmente no es estrictamente necesario (MariaDB los aplica al instante), pero sí es indispensable si editaste las tablas <span class='q-code'>mysql.user</span> directamente con INSERT/UPDATE."
+  },
+  {
+    cat: "Privilegios",
+    text: "¿Cuál de estos NO es un privilegio típico que se asignaría a un usuario con rol de 'editor' de base de datos?",
+    options: [
+      "INSERT",
+      "UPDATE",
+      "DROP DATABASE",
+      "DELETE"
+    ],
+    correct: 2,
+    explain: "<b>DROP DATABASE</b> es una operación destructiva a nivel estructural, propia de un administrador, no de un editor de contenido. Otorgarlo a un editor viola el principio de mínimo privilegio y expone la base de datos a borrados accidentales."
+  },
+
+  // ---- Crear bases de datos ----
+  {
+    cat: "Bases de datos",
+    text: "¿Qué instrucción SQL crea una nueva base de datos llamada tienda con codificación UTF-8 completa (emojis incluidos)?",
+    options: [
+      "<span class='q-code'>CREATE DATABASE tienda;</span>",
+      "<span class='q-code'>CREATE DATABASE tienda CHARACTER SET utf8mb4;</span>",
+      "<span class='q-code'>NEW DATABASE tienda ENCODING utf8;</span>",
+      "<span class='q-code'>MAKE DATABASE tienda CHARSET=8;</span>"
+    ],
+    correct: 1,
+    explain: "<b>utf8mb4</b> es la codificación recomendada porque soporta el conjunto completo de Unicode (incluye emojis y caracteres especiales de 4 bytes), a diferencia del antiguo <span class='q-code'>utf8</span> de MySQL que solo cubre hasta 3 bytes."
+  },
+
+  // ---- Ventajas de usar administrador de bases de datos (phpMyAdmin) ----
+  {
+    cat: "Buenas prácticas",
+    text: "¿Cuál es una ventaja principal de usar un administrador gráfico como phpMyAdmin frente a trabajar siempre por consola SQL pura?",
+    options: [
+      "Es la única forma de conectarse a MariaDB",
+      "Reduce errores de sintaxis y ofrece visualización clara de tablas, relaciones y datos",
+      "Elimina la necesidad de hacer backups",
+      "Sustituye completamente los privilegios de usuario"
+    ],
+    correct: 1,
+    explain: "phpMyAdmin no reemplaza SQL ni los privilegios, pero facilita tareas comunes (crear tablas, revisar datos, exportar) con una interfaz visual, lo cual reduce errores de tipeo y acelera el aprendizaje, especialmente útil para administración cotidiana."
+  },
+  {
+    cat: "Buenas prácticas",
+    text: "Para un estudiante que recién aprende SQL, ¿qué ventaja ofrece administrar la base de datos desde phpMyAdmin además de la consola?",
+    options: [
+      "Genera automáticamente el código de la aplicación web",
+      "Permite ver de forma inmediata el resultado de cada acción (estructura, datos, relaciones) sin memorizar toda la sintaxis",
+      "Es más seguro que usar contraseñas fuertes",
+      "Reemplaza la necesidad de entender el modelo relacional"
+    ],
+    correct: 1,
+    explain: "La retroalimentación visual inmediata ayuda a construir intuición sobre cómo se comportan las tablas, claves foráneas y consultas, complementando (no sustituyendo) el aprendizaje de la sintaxis SQL en consola."
+  },
+
+  // ---- Backups ----
+  {
+    cat: "Backups",
+    text: "¿Por qué es importante hacer backups periódicos de las bases de datos de un servidor de producción o de un servidor escolar con proyectos de alumnos?",
+    options: [
+      "Solo sirven para cumplir una formalidad administrativa",
+      "Permiten recuperar la información ante fallos de hardware, errores humanos o ataques, evitando pérdida total de datos",
+      "Aumentan automáticamente el rendimiento del servidor",
+      "Son obligatorios solo si el servidor usa Windows"
+    ],
+    correct: 1,
+    explain: "Un backup es la red de seguridad ante borrados accidentales (DROP TABLE sin querer), fallos de disco, corrupción de datos o incidentes de seguridad. Sin backups, cualquiera de estos eventos puede significar pérdida irreversible de proyectos completos."
+  },
+  {
+    cat: "Backups",
+    text: "Una buena práctica de backup que va más allá de solo 'hacer el respaldo' es:",
+    options: [
+      "Guardar el backup únicamente en el mismo disco del servidor",
+      "Probar periódicamente que el backup se puede restaurar correctamente",
+      "Hacer backup una sola vez al inicio del proyecto",
+      "Compartir la contraseña del backup públicamente para que cualquiera lo restaure"
+    ],
+    correct: 1,
+    explain: "Un backup que nunca se ha probado podría estar corrupto o incompleto sin que nadie lo sepa hasta el momento crítico. La regla de oro es: 'un backup que no se ha restaurado de prueba no es un backup confiable'."
+  },
+
+  // ---- Bases de datos relacionales ----
+  {
+    cat: "Modelo relacional",
+    text: "En el modelo relacional, ¿qué elemento permite vincular una fila de una tabla con una fila de otra tabla (por ejemplo, un pedido con su cliente)?",
+    options: [
+      "Clave primaria duplicada en ambas tablas con el mismo nombre de columna",
+      "Clave foránea (FOREIGN KEY) que referencia la clave primaria de otra tabla",
+      "Un archivo CSV intermedio",
+      "El nombre de la base de datos"
+    ],
+    correct: 1,
+    explain: "La <b>clave foránea</b> establece la relación entre tablas, garantizando integridad referencial: por ejemplo, no se puede insertar un pedido con un cliente_id que no exista en la tabla clientes."
+  },
+  {
+    cat: "Modelo relacional",
+    text: "¿Cuál es la principal ventaja de organizar los datos en varias tablas relacionadas (normalización) en lugar de una sola tabla gigante con todo repetido?",
+    options: [
+      "Hace las consultas siempre más lentas",
+      "Reduce la redundancia de datos y facilita mantener la consistencia al actualizar",
+      "Impide usar JOIN entre tablas",
+      "Elimina la necesidad de claves primarias"
+    ],
+    correct: 1,
+    explain: "La normalización evita que la misma información (como el nombre de un cliente) se repita en miles de filas. Si necesitas corregir un dato, lo cambias en un solo lugar en vez de en cada fila donde aparecía duplicado."
+  },
+
+  // ---- Usar Linux / terminal ----
+  {
+    cat: "Linux y terminal",
+    text: "¿Cuál es una ventaja importante de administrar un servidor con Linux frente a otros sistemas en este contexto educativo/CI-CD?",
+    options: [
+      "Linux no permite acceso remoto por SSH",
+      "Es gratuito, ligero en recursos, altamente configurable y es el estándar de facto en servidores y DevOps",
+      "Solo funciona con bases de datos NoSQL",
+      "No requiere actualizaciones de seguridad"
+    ],
+    correct: 1,
+    explain: "Linux domina el ecosistema de servidores por ser de código abierto, eficiente en uso de recursos, estable para procesos de larga duración, y porque la mayoría de herramientas de CI/CD, contenedores y nubes están construidas pensando en él."
+  },
+  {
+    cat: "Linux y terminal",
+    text: "¿Qué ventaja ofrece usar la terminal (línea de comandos) frente a depender solo de interfaces gráficas para administrar un servidor?",
+    options: [
+      "Es visualmente más atractiva que cualquier GUI",
+      "Permite automatizar tareas con scripts, es más rápida para tareas repetitivas y funciona incluso sin entorno gráfico instalado",
+      "Es la única forma de conectarse a una base de datos",
+      "Elimina por completo el riesgo de cometer errores"
+    ],
+    correct: 1,
+    explain: "La terminal permite encadenar comandos, automatizar con scripts (como <span class='q-code'>setup-servidor.sh</span>) y administrar servidores remotos vía SSH que normalmente no tienen ni necesitan interfaz gráfica, ahorrando recursos del sistema."
+  },
+
+  // ---- Buenas prácticas administración BD ----
+  {
+    cat: "Buenas prácticas",
+    text: "¿Cuál de las siguientes es una buena práctica de seguridad al administrar usuarios de base de datos?",
+    options: [
+      "Usar el usuario root para todas las conexiones de la aplicación web",
+      "Crear usuarios específicos por aplicación o rol, con solo los privilegios estrictamente necesarios",
+      "Compartir una sola cuenta y contraseña entre todos los estudiantes",
+      "Dejar contraseñas vacías para facilitar el acceso"
+    ],
+    correct: 1,
+    explain: "El <b>principio de mínimo privilegio</b> indica que cada usuario o aplicación debe tener solo los permisos que necesita para su función, nunca más. Esto limita el daño potencial si una cuenta es comprometida."
+  },
+  {
+    cat: "Buenas prácticas",
+    text: "¿Por qué es buena práctica revisar regularmente los registros (logs) de acceso y actividad de la base de datos?",
+    options: [
+      "No tiene ninguna utilidad real",
+      "Permite detectar accesos sospechosos, errores recurrentes o intentos de intrusión a tiempo",
+      "Solo sirve para llenar espacio en disco",
+      "Es un requisito únicamente estético de phpMyAdmin"
+    ],
+    correct: 1,
+    explain: "Los logs son la 'caja negra' del sistema: permiten auditar quién hizo qué y cuándo, detectar patrones anómalos (como múltiples intentos fallidos de login) y diagnosticar problemas antes de que se vuelvan críticos."
+  },
+
+  // ---- Tecnologías: PHP, Apache, phpMyAdmin, MariaDB ----
+  {
+    cat: "Stack LAMP",
+    text: "En el stack LAMP/LAMP-like usado en el servidor escolar, ¿qué rol cumple cada tecnología? Apache → ?",
+    options: [
+      "Sistema operativo base",
+      "Servidor web que recibe las peticiones HTTP y las entrega a PHP o sirve archivos estáticos",
+      "Motor de base de datos relacional",
+      "Lenguaje de programación del backend"
+    ],
+    correct: 1,
+    explain: "<b>Apache</b> es el servidor web: escucha peticiones HTTP/HTTPS, sirve archivos estáticos directamente y delega la ejecución de código dinámico (como archivos .php) al intérprete correspondiente."
+  },
+  {
+    cat: "Stack LAMP",
+    text: "¿Cuál es la relación correcta entre PHP, MariaDB y phpMyAdmin?",
+    options: [
+      "MariaDB es el lenguaje, PHP es la base de datos y phpMyAdmin es el servidor web",
+      "PHP es el lenguaje del backend, MariaDB es el motor de base de datos, y phpMyAdmin es una aplicación web (escrita en PHP) para administrar MariaDB visualmente",
+      "Los tres son sistemas operativos distintos",
+      "phpMyAdmin sustituye a MariaDB como motor de almacenamiento"
+    ],
+    correct: 1,
+    explain: "<b>PHP</b> ejecuta la lógica del lado del servidor, <b>MariaDB</b> almacena y gestiona los datos mediante SQL, y <b>phpMyAdmin</b> es en sí mismo una aplicación PHP que se conecta a MariaDB para ofrecer una interfaz web de administración, sin ser el motor de base de datos."
+  }
+];
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+let current = 0;
+let score = 0;
+let answers = []; // { selected, correct, isCorrect }
+let answered = false;
+
+const startScreen = document.getElementById('start-screen');
+const quizScreen = document.getElementById('quiz-screen');
+const resultScreen = document.getElementById('result-screen');
+
+function startQuiz(){
+  current = 0; score = 0; answers = [];
+  startScreen.style.display = 'none';
+  resultScreen.style.display = 'none';
+  quizScreen.style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion(){
+  answered = false;
+  const q = QUESTIONS[current];
+
+  document.getElementById('q-cat').textContent = q.cat;
+  document.getElementById('q-text').innerHTML = q.text;
+
+  const optsWrap = document.getElementById('q-options');
+  optsWrap.innerHTML = '';
+  const letters = ['A','B','C','D'];
+
+  q.options.forEach((opt, idx) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.innerHTML = `<span class="letter">${letters[idx]}</span><span>${opt}</span>`;
+    div.onclick = () => selectAnswer(idx);
+    optsWrap.appendChild(div);
+  });
+
+  document.getElementById('q-feedback').className = 'feedback';
+  document.getElementById('q-feedback').innerHTML = '';
+  document.getElementById('next-btn').disabled = true;
+  document.getElementById('next-btn').textContent = (current === QUESTIONS.length - 1) ? 'Ver resultados →' : 'Siguiente →';
+
+  updateProgress();
+}
+
+function updateProgress(){
+  const pct = (current / QUESTIONS.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Pregunta ${current + 1} / ${QUESTIONS.length}`;
+  document.getElementById('score-live').textContent = score;
+}
+
+function selectAnswer(idx){
+  if(answered) return;
+  answered = true;
+
+  const q = QUESTIONS[current];
+  const isCorrect = idx === q.correct;
+  if(isCorrect) score++;
+
+  answers.push({ selected: idx, correct: q.correct, isCorrect });
+
+  const opts = document.querySelectorAll('#q-options .option');
+  opts.forEach((el, i) => {
+    el.classList.add('locked');
+    if(i === q.correct) el.classList.add('correct');
+    if(i === idx && !isCorrect) el.classList.add('incorrect');
+    if(i !== idx && i !== q.correct) el.classList.add('dim');
+  });
+
+  const fb = document.getElementById('q-feedback');
+  fb.classList.add('show', isCorrect ? 'ok' : 'bad');
+  fb.innerHTML = (isCorrect ? '<b>Correcto.</b> ' : '<b>No es así.</b> ') + q.explain;
+
+  document.getElementById('next-btn').disabled = false;
+  document.getElementById('score-live').textContent = score;
+}
+
+function nextQuestion(){
+  current++;
+  if(current >= QUESTIONS.length){
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResults(){
+  quizScreen.style.display = 'none';
+  resultScreen.style.display = 'block';
+
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const total = QUESTIONS.length;
+  const pct = Math.round((score / total) * 100);
+
+  document.getElementById('final-score').innerHTML = `${score}<span class="of">/${total}</span>`;
+  document.getElementById('final-pct').textContent = `${pct}% de aciertos`;
+
+  let msg;
+  if(pct >= 90) msg = "Excelente dominio del tema. Tu comprensión de usuarios, privilegios y administración de bases de datos está sólida — nivel listo para aplicar en el servidor real.";
+  else if(pct >= 70) msg = "Buen resultado. Dominas la mayoría de conceptos; repasa los puntos fallados, especialmente los relacionados con privilegios y buenas prácticas de seguridad.";
+  else if(pct >= 50) msg = "Vas por buen camino, pero hay vacíos importantes. Repasa los conceptos de GRANT/FLUSH PRIVILEGES, backups e import/export antes de operar en producción.";
+  else msg = "Conviene reforzar las bases: usuarios, privilegios y backups son fundamentales antes de administrar cualquier servidor con datos reales. Revisa la sección de falladas.";
+  document.getElementById('score-msg').textContent = msg;
+
+  renderBreakdown();
+}
+
+function renderBreakdown(){
+  const cats = {};
+  QUESTIONS.forEach((q, i) => {
+    if(!cats[q.cat]) cats[q.cat] = { correct: 0, total: 0 };
+    cats[q.cat].total++;
+    if(answers[i] && answers[i].isCorrect) cats[q.cat].correct++;
+  });
+
+  const wrap = document.getElementById('breakdown');
+  wrap.innerHTML = '<div class="breakdown-title">Desempeño por categoría</div>';
+
+  Object.entries(cats).forEach(([cat, val]) => {
+    const pct = Math.round((val.correct / val.total) * 100);
+    const row = document.createElement('div');
+    row.className = 'bd-row';
+    row.innerHTML = `
+      <span class="bd-cat">${cat}</span>
+      <span class="bd-bar-track"><span class="bd-bar-fill" style="width:${pct}%"></span></span>
+      <span class="bd-num">${val.correct}/${val.total}</span>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function restartQuiz(){
+  resultScreen.style.display = 'none';
+  startScreen.style.display = 'block';
+  document.getElementById('progress-fill').style.width = '0%';
+}
+
+function reviewMissed(){
+  const missedIndexes = answers
+    .map((a, i) => ({...a, i}))
+    .filter(a => !a.isCorrect);
+
+  if(missedIndexes.length === 0){
+    alert('¡No fallaste ninguna! No hay nada que revisar.');
+    return;
+  }
+
+  let html = '<div class="breakdown-title" style="margin-top:24px;">Preguntas falladas</div>';
+  missedIndexes.forEach(item => {
+    const q = QUESTIONS[item.i];
+    html += `
+      <div style="background:var(--bg2); border:1px solid var(--surface); border-left:3px solid var(--red); border-radius:0 8px 8px 0; padding:14px 16px; margin-bottom:12px;">
+        <div style="font-size:11px; color:var(--sub); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">${q.cat}</div>
+        <div style="font-size:13.5px; margin-bottom:10px; line-height:1.5;">${q.text}</div>
+        <div style="font-size:12.5px; color:var(--green); margin-bottom:6px;"><b>Respuesta correcta:</b> ${q.options[q.correct]}</div>
+        <div style="font-size:12.5px; color:var(--sub); line-height:1.5;">${q.explain}</div>
+      </div>
+    `;
+  });
+
+  const wrap = document.getElementById('breakdown');
+  wrap.innerHTML += html;
+  wrap.scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
